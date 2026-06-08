@@ -10,3 +10,6 @@ print(df[df.duplicated(subset="Name")], "\n")
 
 df_clean = df.drop_duplicates(subset="Name")
 print(df_clean)
+
+text = " Hello    world of  pandas!  "
+print(text.strip())
