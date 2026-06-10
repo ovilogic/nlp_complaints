@@ -77,24 +77,41 @@ def load_data(file_name):
     df_clean = df.drop_duplicates(subset="narrative")
     df_clean.dropna(inplace=True)
     logger.info("Data cleaning completed.")
-    print("\n" + "Returned cleaned DataFrame: ", df_clean.head())
+    # print("\n" + "Returned cleaned DataFrame: ", df_clean.head())
     return df_clean
 
-def text_preprocessing(series):
-    logger.info("Starting text preprocessing.")
+def data_auditing(series):
+    logger.info("Starting data auditing.")
     series = series.str.strip()
 
     total_lower = (series == series.str.lower()).sum()
     logger.info(f"Total entries that are already lowercase: {total_lower} out of {len(series)}")
-
-    punctuation = (series == series.str.contains(r"[^\w\s]", regex=True)).sum()
+    punctuation = series.str.contains(r"[^\w\s]", regex=True).sum()
     logger.info(f"Total entries with punctuation: {punctuation} out of {len(series)}")
-    
-    # disabled_pipes = ["parser", "ner"]
-    # nlp = spacy.load("en_core_web_sm", disable=disabled_pipes)
-    # docs = nlp.pipe(series, batch_size=10)
+  
+    word_lists = series.str.split()
+    unique_words = []
+    # Vocabulary size:
+    for word_list in word_lists:
+        unique_complaint = set(word_list)
+        unique_words.extend(unique_complaint)
+    unique_words_count = len(set(unique_words))
+    logger.info(f"Vocabulary size (unique words): {unique_words_count}")
+    # Most frequent words:
+    exploded = word_lists.explode()
+    logger.info(f"Total words (including duplicates): {len(exploded)}")
+    word_freq = exploded.value_counts()
+    most_frequent = word_freq.head(10)
+    logger.info(f"Most frequent 10 words: \n{most_frequent}")
+    # Rare words:
+    rare_words = (word_freq == 1).sum()
+    logger.info(f"Words appearing once: \n{rare_words}"
+                f"\n Which amounts to {(rare_words / unique_words_count) * 100:.2f}% of the vocabulary.")
 
-    wordcount = series.str.split().str.len().sum()    
+    word_count = word_lists.str.len() # Number of words in each complaint
+    logger.info(f"Complaint length distribution (in words): \n {word_count.describe()}")
+    logger.info(f"95th percentile complaint length: {word_count.quantile(0.95):.0f} words")
+
     total_stops = 0
     # stops = list(STOP_WORDS)
     stops_found = []  # To keep track of which stop words are found in the first few complaints
@@ -105,15 +122,14 @@ def text_preprocessing(series):
                 stops_found.append(word)
                 # logger.debug(f"Found stop word: '{word}'")
     # logger.info(f"{total_stops} stop words found in all complaints: {stops_found}")
-    logger.info(f"Total stop words found in all the complaints: {total_stops}.")
-    logger.info(f"Total stop words found: {total_stops} out of {wordcount} total words.\
-                This amounts to {(total_stops / wordcount) * 100:.2f}% of all words being stop words.")
-    logger.info("Spacy tokenization completed.")
+    logger.info(f"Total stop words found: {total_stops} out of {word_count.sum()} total words.\
+                This amounts to {(total_stops / word_count.sum()) * 100:.2f}% of all words being stop words.")
+    
 
 
     return series
 
 if __name__ == "__main__":
     df = load_data(file_name)
-    print(text_preprocessing(df["narrative"]))
+    data_auditing(df["narrative"])
 
