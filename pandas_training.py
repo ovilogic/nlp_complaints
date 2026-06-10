@@ -15,6 +15,10 @@ text = " Hello    world of  pandas!  "
 # print(text.strip())
 
 mask = df["Name"].str.lower() == df["Name"].str.lower()
-print(mask)
-print(type(mask))
-print(df[mask])
+# print(mask)
+# print(type(mask))
+# print(df[mask])
+
+s = pd.Series(["hello world", "one two three"])
+print(s.str.len())
+print(s.str.split().str.len())

@@ -1,6 +1,6 @@
 import pandas as pd
 import logging
-# from spacy.lang.en.stop_words import STOP_WORDS
+from spacy.lang.en.stop_words import STOP_WORDS
 import spacy
 from pathlib import Path
 
@@ -90,16 +90,24 @@ def text_preprocessing(series):
     punctuation = (series == series.str.contains(r"[^\w\s]", regex=True)).sum()
     logger.info(f"Total entries with punctuation: {punctuation} out of {len(series)}")
     
-    disabled_pipes = ["parser", "ner"]
-    nlp = spacy.load("en_core_web_sm", disable=disabled_pipes)
-    docs = nlp.pipe(series, batch_size=10)
-    total_stops = 0
-    for doc in docs:
-        for token in doc:
-            if token.is_stop:
-                total_stops += 1
+    # disabled_pipes = ["parser", "ner"]
+    # nlp = spacy.load("en_core_web_sm", disable=disabled_pipes)
+    # docs = nlp.pipe(series, batch_size=10)
 
-    logger.info(f"Total stop words found: {total_stops} out of {len(series)}")
+    wordcount = series.str.split().str.len().sum()    
+    total_stops = 0
+    # stops = list(STOP_WORDS)
+    stops_found = []  # To keep track of which stop words are found in the first few complaints
+    for complaint in series:
+        for word in complaint.split():
+            if word in STOP_WORDS:
+                total_stops += 1
+                stops_found.append(word)
+                # logger.debug(f"Found stop word: '{word}'")
+    # logger.info(f"{total_stops} stop words found in all complaints: {stops_found}")
+    logger.info(f"Total stop words found in all the complaints: {total_stops}.")
+    logger.info(f"Total stop words found: {total_stops} out of {wordcount} total words.\
+                This amounts to {(total_stops / wordcount) * 100:.2f}% of all words being stop words.")
     logger.info("Spacy tokenization completed.")
 
 
