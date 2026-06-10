@@ -1,5 +1,16 @@
 import pandas as pd
+import logging
+# from spacy.lang.en.stop_words import STOP_WORDS
+import spacy
 from pathlib import Path
+
+import logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(name)s - %(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger(__name__)
 
 # path = Path(__file__).parent / "data" / "complaints_processed.csv"
 # df = pd.read_csv(path, index_col=0)
@@ -40,6 +51,7 @@ from pathlib import Path
 # Refactoring the code into functions
 file_name = "complaints_processed.csv"
 def load_data(file_name):
+    logger.info(f"Loading data from {file_name}.")
     path = Path(__file__).parent / "data" / file_name
     df = pd.read_csv(path, index_col=0)
     # Initial inspection
@@ -64,13 +76,36 @@ def load_data(file_name):
     print(df.columns.tolist())
     df_clean = df.drop_duplicates(subset="narrative")
     df_clean.dropna(inplace=True)
+    logger.info("Data cleaning completed.")
     print("\n" + "Returned cleaned DataFrame: ", df_clean.head())
     return df_clean
 
 def text_preprocessing(series):
+    logger.info("Starting text preprocessing.")
     series = series.str.strip()
+
+    total_lower = (series == series.str.lower()).sum()
+    logger.info(f"Total entries that are already lowercase: {total_lower} out of {len(series)}")
+
+    punctuation = (series == series.str.contains(r"[^\w\s]", regex=True)).sum()
+    logger.info(f"Total entries with punctuation: {punctuation} out of {len(series)}")
+    
+    disabled_pipes = ["parser", "ner"]
+    nlp = spacy.load("en_core_web_sm", disable=disabled_pipes)
+    docs = nlp.pipe(series, batch_size=10)
+    total_stops = 0
+    for doc in docs:
+        for token in doc:
+            if token.is_stop:
+                total_stops += 1
+
+    logger.info(f"Total stop words found: {total_stops} out of {len(series)}")
+    logger.info("Spacy tokenization completed.")
+
+
     return series
 
 if __name__ == "__main__":
     df = load_data(file_name)
     print(text_preprocessing(df["narrative"]))
+

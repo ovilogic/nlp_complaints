@@ -1,4 +1,5 @@
 import spacy
+from spacy.lang.en.stop_words import STOP_WORDS
 
 # nlp = spacy.load("en_core_web_sm")
 nlp = spacy.load("en_core_web_md")
@@ -56,4 +57,8 @@ wd2 = nlp("canine")
 
 token = wd1[0]
 # print(token.vector)
+
+print(type(STOP_WORDS))
+stops = list(STOP_WORDS)
+print(stops[:10])
 

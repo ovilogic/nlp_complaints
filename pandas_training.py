@@ -5,11 +5,16 @@ df = pd.DataFrame({
     "Age": [25, 30, 35, 25, 30, 40],
 })
 
-print(df, "\n")
-print(df[df.duplicated(subset="Name")], "\n")
+# print(df, "\n")
+# print(df[df.duplicated(subset="Name")], "\n")
 
 df_clean = df.drop_duplicates(subset="Name")
-print(df_clean)
+# print(df_clean)
 
 text = " Hello    world of  pandas!  "
-print(text.strip())
+# print(text.strip())
+
+mask = df["Name"].str.lower() == df["Name"].str.lower()
+print(mask)
+print(type(mask))
+print(df[mask])
