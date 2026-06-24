@@ -2,6 +2,7 @@ import pandas as pd
 import logging
 from spacy.lang.en.stop_words import STOP_WORDS
 import spacy
+# import os
 from pathlib import Path
 
 import logging
@@ -121,15 +122,41 @@ def data_auditing(series):
                 total_stops += 1
                 stops_found.append(word)
                 # logger.debug(f"Found stop word: '{word}'")
-    # logger.info(f"{total_stops} stop words found in all complaints: {stops_found}")
     logger.info(f"Total stop words found: {total_stops} out of {word_count.sum()} total words.\
                 This amounts to {(total_stops / word_count.sum()) * 100:.2f}% of all words being stop words.")
     
-
-
     return series
+
+def lemmatization(df, column_name):
+    # df = df.copy()
+    nlp = spacy.load('en_core_web_sm')
+    logger.info("Model loaded.")
+    series = df[column_name]
+    df["Lemmatized"] = ""  # Initialize the new column with empty strings
+    # lemmatized_texts = []
+    # for doc in nlp.pipe(series, batch_size=1000):
+    #     lemmatized_doc = " ".join(token.lemma_ for token in doc)
+    #     # lemmatized_texts.append(lemmatized_doc)
+    #     df["Lemmatized"] = lemmatized_doc
+    with nlp.select_pipes(disable=["parser", "ner"]):
+        for idx, doc in enumerate(nlp.pipe(series, batch_size=1000)):
+            df.iloc[idx, df.columns.get_loc("Lemmatized")] = " ".join(token.lemma_ for token in doc)
+            if (idx + 1) % 10000 == 0:
+                logger.info(f"Processed {idx + 1} documents")
+
+
+    logger.info("Lemmatisation is now complete. Proceeding to sampling.")
+    # Sample check the first few lemmatized entries
+    sample = df[["narrative", "Lemmatized"]].head(10)
+    for _, row in sample.iterrows():
+        print("-" * 10)
+        print(f"Original: {row['narrative'][:300]}...")  # Print the first 300 characters for brevity
+        print(f"Lemmatized: {row['Lemmatized'][:300]}...")
+    return df
 
 if __name__ == "__main__":
     df = load_data(file_name)
-    data_auditing(df["narrative"])
+    # data_auditing(df["narrative"])
+    lemmatized_df = lemmatization(df, "narrative")
+    
 
