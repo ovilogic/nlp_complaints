@@ -3,7 +3,7 @@ from spacy.lang.en.stop_words import STOP_WORDS
 
 # nlp = spacy.load("en_core_web_sm")
 nlp = spacy.load("en_core_web_md")
-# doc = nlp("This is a sentence.")
+doc = nlp("This is a sentence.")
 # print(doc.text)  # Output: This is a sentence. 
 
 # for token in doc:
@@ -51,14 +51,14 @@ nlp = spacy.load("en_core_web_md")
 
 # print(doc1.similarity(doc2))
 
-wd1 = nlp("dog")
-wd2 = nlp("canine")
-# print(wd1.similarity(wd2))
+# wd1 = nlp("dog")
+# wd2 = nlp("canine")
+# # print(wd1.similarity(wd2))
 
-token = wd1[0]
-# print(token.vector)
+# token = wd1[0]
+# # print(token.vector)
 
-print(type(STOP_WORDS))
-stops = list(STOP_WORDS)
-print(stops[:10])
+# print(type(STOP_WORDS))
+# stops = list(STOP_WORDS)
+# print(stops[:10])
 

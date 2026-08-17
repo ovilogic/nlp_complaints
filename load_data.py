@@ -4,6 +4,7 @@ from spacy.lang.en.stop_words import STOP_WORDS
 import spacy
 # import os
 from pathlib import Path
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 import logging
 logging.basicConfig(
@@ -72,7 +73,7 @@ def load_data(file_name):
     print("Summary stats for numeric columns:")
     print(df.describe())
     print("Summary stats for string columns:")
-    print(df.describe(include="object"))
+    print(df.describe(include="str"))
     print("Column names:")
     print(df.columns.tolist())
     df_clean = df.drop_duplicates(subset="narrative")
@@ -84,12 +85,11 @@ def load_data(file_name):
 def data_auditing(series):
     logger.info("Starting data auditing.")
     series = series.str.strip()
-
+   
     total_lower = (series == series.str.lower()).sum()
-    logger.info(f"Total entries that are already lowercase: {total_lower} out of {len(series)}")
+    logger.info(f"Total entries that are already lowercase: {total_lower} out of {len(series)} = {(total_lower / len(series)) * 100:.2f}%")
     punctuation = series.str.contains(r"[^\w\s]", regex=True).sum()
-    logger.info(f"Total entries with punctuation: {punctuation} out of {len(series)}")
-  
+    logger.info(f"Total entries with punctuation: {punctuation} out of {len(series)} = {(punctuation / len(series)) * 100:.2f}%")
     word_lists = series.str.split()
     unique_words = []
     # Vocabulary size:
@@ -100,6 +100,7 @@ def data_auditing(series):
     logger.info(f"Vocabulary size (unique words): {unique_words_count}")
     # Most frequent words:
     exploded = word_lists.explode()
+    # logger.info("*" * 80 + f"testing exploded: {exploded.tail(30)}")
     logger.info(f"Total words (including duplicates): {len(exploded)}")
     word_freq = exploded.value_counts()
     most_frequent = word_freq.head(10)
@@ -126,9 +127,12 @@ def data_auditing(series):
                 This amounts to {(total_stops / word_count.sum()) * 100:.2f}% of all words being stop words.")
     
     return series
-
+'''
+Better TF-IDF weights. Your core deliverable is per-category TF-IDF. A term like "charge" is genuinely important in credit_card complaints — but "charged", "charges", "charging" spread its frequency across variants. Lemmatized, that frequency consolidates onto one token, giving it a stronger and more accurate IDF weight.
+Cleaner VADER input. VADER works on raw text, not lemmatized text — so lemmatization won't affect your sentiment scores directly. But when you're interpreting which words drive frustration intensity, having normalized tokens makes those patterns more legible.
+'''
 def lemmatization(df, column_name):
-    # df = df.copy()
+    df = df.copy()
     nlp = spacy.load('en_core_web_sm')
     logger.info("Model loaded.")
     series = df[column_name]
@@ -144,19 +148,38 @@ def lemmatization(df, column_name):
             if (idx + 1) % 10000 == 0:
                 logger.info(f"Processed {idx + 1} documents")
 
-
-    logger.info("Lemmatisation is now complete. Proceeding to sampling.")
+    logger.info("Lemmatisation is now complete. Proceeding to saving as a parquet and sampling.")
+    df.to_parquet("df_lemmatized.parquet")
     # Sample check the first few lemmatized entries
-    sample = df[["narrative", "Lemmatized"]].head(10)
-    for _, row in sample.iterrows():
-        print("-" * 10)
-        print(f"Original: {row['narrative'][:300]}...")  # Print the first 300 characters for brevity
-        print(f"Lemmatized: {row['Lemmatized'][:300]}...")
+    # sample = df[["narrative", "Lemmatized"]].head(10)
+    # for _, row in sample.iterrows():
+    #     print("-" * 10)
+    #     print(f"Original: {row['narrative'][:300]}...")  # Print the first 300 characters for brevity
+    #     print(f"Lemmatized: {row['Lemmatized'][:300]}...")
     return df
 
+def create_tfidf_features(text_series):
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(text_series)
+    return tfidf_matrix, vectorizer.get_feature_names_out()
+
 if __name__ == "__main__":
-    df = load_data(file_name)
+    # df = load_data(file_name)
     # data_auditing(df["narrative"])
-    lemmatized_df = lemmatization(df, "narrative")
-    
+    # # lemmatized_df = lemmatization(df, "narrative")
+    load_lemmatized_df = pd.read_parquet("./data/df_lemmatized.parquet")
+    sample = load_lemmatized_df[["narrative", "Lemmatized"]].head(3)
+    for i in range(len(sample)):
+        print("-" * 10)
+        print(f"Original: {sample.iloc[i, 0][:300]}...")  # Print the first 300 characters for brevity
+        print(f"Lemmatized: {sample.iloc[i, 1][:300]}...")
+    # print(sample.iloc[:, 0].str[:300])  # Print the first 300 characters of the original narrative
+    # # for _, row in sample.iterrows():
+    # #     print("-" * 10)
+    # #     print(f"Original: {row['narrative'][:300]}...")  # Print the first 300 characters for brevity
+    # #     print(f"Lemmatized: {row['Lemmatized'][:300]}...")
+    # series = load_lemmatized_df["Lemmatized"]
+    # matrix = create_tfidf_features(series)
+    # print("first 10 rows of the TF-IDF matrix:", matrix[0][:10])
+    # print(matrix.columns[:10])  # Print the first 10 feature names
 
