@@ -164,22 +164,22 @@ def create_tfidf_features(text_series):
     return tfidf_matrix, vectorizer.get_feature_names_out()
 
 if __name__ == "__main__":
-    # df = load_data(file_name)
-    # data_auditing(df["narrative"])
+    df = load_data(file_name)
+    data_auditing(df["narrative"])
     # # lemmatized_df = lemmatization(df, "narrative")
     load_lemmatized_df = pd.read_parquet("./data/df_lemmatized.parquet")
-    sample = load_lemmatized_df[["narrative", "Lemmatized"]].head(3)
-    for i in range(len(sample)):
-        print("-" * 10)
-        print(f"Original: {sample.iloc[i, 0][:300]}...")  # Print the first 300 characters for brevity
-        print(f"Lemmatized: {sample.iloc[i, 1][:300]}...")
-    # print(sample.iloc[:, 0].str[:300])  # Print the first 300 characters of the original narrative
-    # # for _, row in sample.iterrows():
-    # #     print("-" * 10)
-    # #     print(f"Original: {row['narrative'][:300]}...")  # Print the first 300 characters for brevity
-    # #     print(f"Lemmatized: {row['Lemmatized'][:300]}...")
-    # series = load_lemmatized_df["Lemmatized"]
-    # matrix = create_tfidf_features(series)
-    # print("first 10 rows of the TF-IDF matrix:", matrix[0][:10])
-    # print(matrix.columns[:10])  # Print the first 10 feature names
+
+    tfidf_matrix = create_tfidf_features(load_lemmatized_df["Lemmatized"])
+    terms = tfidf_matrix[1]  # Get the feature names (terms)
+    scores = tfidf_matrix[0] # Remmember this is a sparse matrix.
+    print(tfidf_matrix[0].shape, tfidf_matrix[0].size)
+
+    for product in sorted(df["product"].unique()):
+        # First, let's get a mask (single Series of boolean values). As the notes say,
+        # this can be used directly as a mask for filtering.
+        product_rows = df["product"].eq(product)
+
+
+
+
 
