@@ -1,12 +1,12 @@
 import pandas as pd
 import logging
-from spacy.lang.en.stop_words import STOP_WORDS
 import spacy
-# import os
+import numpy as np
+import logging
+from spacy.lang.en.stop_words import STOP_WORDS
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-import logging
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(name)s - %(asctime)s - %(levelname)s - %(message)s",
@@ -129,7 +129,7 @@ def data_auditing(series):
     return series
 '''
 Better TF-IDF weights. Your core deliverable is per-category TF-IDF. A term like "charge" is genuinely important in credit_card complaints — but "charged", "charges", "charging" spread its frequency across variants. Lemmatized, that frequency consolidates onto one token, giving it a stronger and more accurate IDF weight.
-Cleaner VADER input. VADER works on raw text, not lemmatized text — so lemmatization won't affect your sentiment scores directly. But when you're interpreting which words drive frustration intensity, having normalized tokens makes those patterns more legible.
+Cleaner VADER input. VADER works on raw text, not lemmatized text — so lemmatization won't affect your sentiment sparse_matrix directly. But when you're interpreting which words drive frustration intensity, having normalized tokens makes those patterns more legible.
 '''
 def lemmatization(df, column_name):
     df = df.copy()
@@ -158,28 +158,42 @@ def lemmatization(df, column_name):
     #     print(f"Lemmatized: {row['Lemmatized'][:300]}...")
     return df
 
-def create_tfidf_features(text_series):
+def calculate_tfidf(text_series):
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(text_series)
     return tfidf_matrix, vectorizer.get_feature_names_out()
 
 if __name__ == "__main__":
     df = load_data(file_name)
-    data_auditing(df["narrative"])
+    # data_auditing(df["narrative"])
     # # lemmatized_df = lemmatization(df, "narrative")
-    load_lemmatized_df = pd.read_parquet("./data/df_lemmatized.parquet")
+    load_lemmatized_df = pd.read_parquet("./lemmatized_already/df_lemmatized.parquet")
 
-    tfidf_matrix = create_tfidf_features(load_lemmatized_df["Lemmatized"])
-    terms = tfidf_matrix[1]  # Get the feature names (terms)
-    scores = tfidf_matrix[0] # Remmember this is a sparse matrix.
-    print(tfidf_matrix[0].shape, tfidf_matrix[0].size)
+    tfidf = calculate_tfidf(load_lemmatized_df["Lemmatized"])
+    terms = tfidf[1]  # Get the feature names (terms)
+    sparse_matrix = tfidf[0] # Remmember this is a sparse matrix.
+    print(tfidf[0].shape, tfidf[0].size, end="-" * 40 + "\n")
 
     for product in sorted(df["product"].unique()):
         # First, let's get a mask (single Series of boolean values). As the notes say,
         # this can be used directly as a mask for filtering.
         product_rows = df["product"].eq(product)
-
-
+        print(product_rows)
+        # selected_product = sparse_matrix[product_rows.values]
+        # print(product)
+        # print(type(product_rows.to_numpy().nonzero()[0]))
+        product_row_indices = product_rows.to_numpy().nonzero()[0]
+        product_tfidf = sparse_matrix[product_row_indices]
+        # print(product, product_row_indices, end="-" * 40 + "\n")
+        print(np.where(product_tfidf.indices))
+        means_of_all_terms = []
+        for i in range(len(terms)):
+            term_indices = np.where(product_tfidf.indices == i)
+            term_data = product_tfidf.data[term_indices]
+            term_mean_tfidf = term_data.sum() / len(product_rows[product_rows == True]) 
+            means_of_all_terms.append(term_mean_tfidf)
+        top_10_terms = sorted(zip(terms, means_of_all_terms), key=lambda x: x[1], reverse=True)[:10]
+        print(top_10_terms, end="-" * 40 + "\n")
 
 
 
