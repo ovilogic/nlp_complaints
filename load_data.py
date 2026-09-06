@@ -78,8 +78,7 @@ def load_data(file_name):
     print(df.columns.tolist())
     df_clean = df.drop_duplicates(subset="narrative")
     df_clean.dropna(inplace=True)
-    logger.info("Data cleaning completed.")
-    # print("\n" + "Returned cleaned DataFrame: ", df_clean.head())
+    logger.info("Data cleaning completed.\n" + "-" * 80)
     return df_clean
 
 def data_auditing(series):
@@ -171,29 +170,40 @@ if __name__ == "__main__":
 
     tfidf = calculate_tfidf(load_lemmatized_df["Lemmatized"])
     terms = tfidf[1]  # Get the feature names (terms)
-    sparse_matrix = tfidf[0] # Remmember this is a sparse matrix.
-    print(tfidf[0].shape, tfidf[0].size, end="-" * 40 + "\n")
+    sparse_matrix = tfidf[0] # Remmember, this is a sparse matrix.
 
-    for product in sorted(df["product"].unique()):
+    for product in df["product"].unique():
         # First, let's get a mask (single Series of boolean values). As the notes say,
         # this can be used directly as a mask for filtering.
         product_rows = df["product"].eq(product)
-        print(product_rows)
-        # selected_product = sparse_matrix[product_rows.values]
-        # print(product)
-        # print(type(product_rows.to_numpy().nonzero()[0]))
-        product_row_indices = product_rows.to_numpy().nonzero()[0]
-        product_tfidf = sparse_matrix[product_row_indices]
+        product_row_indices = product_rows.to_numpy().nonzero()[0] # The whole point of going back to the original dense array \
+        # to get the row numbers (indices). You can't really get indices from a sparse, non in the usual way.
         # print(product, product_row_indices, end="-" * 40 + "\n")
-        print(np.where(product_tfidf.indices))
+        product_tfidf = sparse_matrix[product_row_indices] # but you can pass a Boolean mask to a sparse and that's okay.
         means_of_all_terms = []
+        # print("Max column index in product_tfidf:", product_tfidf.indices.max())
+        # print("len(terms) - 1:", len(terms) - 1)
         for i in range(len(terms)):
-            term_indices = np.where(product_tfidf.indices == i)
-            term_data = product_tfidf.data[term_indices]
-            term_mean_tfidf = term_data.sum() / len(product_rows[product_rows == True]) 
-            means_of_all_terms.append(term_mean_tfidf)
-        top_10_terms = sorted(zip(terms, means_of_all_terms), key=lambda x: x[1], reverse=True)[:10]
-        print(top_10_terms, end="-" * 40 + "\n")
+            if i == 10:
+                term_word = terms[i]
+                print(term_word)
+                mask_a = product_tfidf.indices == i
+                values_a = product_tfidf.data[mask_a]
+                print(values_a)
+        #     # finds every position (across all rows of product_tfidf) \ 
+        #     # where the stored value belongs to column i, i.e. to term i.
+        #     term_indices = np.where(product_tfidf.indices == i) # this produces a mask
+        #     print("Full matrix shape:", sparse_matrix.shape)
+        #     print("Product matrix shape:", product_tfidf.shape)
+        #     print("Same number of columns?", sparse_matrix.shape[1] == product_tfidf.shape[1])
+        #     print("Number of terms:", len(terms))
+        #     term_data = product_tfidf.data[term_indices] # Using that mask on product_tfidf.data pulls out every nonzero TF-IDF value for term i, 
+            # across every document belonging to that product — 
+            # which is exactly what you want if you're computing something like a per-term average for that product.
+        #     term_mean_tfidf = term_data.sum() / len(product_rows[product_rows == True]) 
+        #     means_of_all_terms.append(term_mean_tfidf)
+        # top_10_terms = sorted(zip(terms, means_of_all_terms), key=lambda x: x[1], reverse=True)[:10]
+        # print(top_10_terms, end="-" * 40 + "\n")
 
 
 

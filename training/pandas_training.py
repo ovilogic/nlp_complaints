@@ -1,13 +1,15 @@
 import pandas as pd
 
 df = pd.DataFrame({
-    "Name": ["Alice", "Bob", "charlie", "NATO", "BOB", "carol"],
-    "Age": [25, 30, 35, 25, 30, 40],
+    "Name": ["Alice", "Bob", "charlie", "NATO", "BOB", "carol", "jamie Dyer"],
+    "Age": [25, 30, 35, 25, 30, 40, 43],
 })
 
-print(df.columns.get_loc("Name"))
-for i in df.columns:
-    print(i, df.columns.get_loc(i))
+print(df.max())
+
+# print(df.columns.get_loc("Name"))
+# for i in df.columns:
+#     print(i, df.columns.get_loc(i))
 # print(df, "\n")
 # print(df[df.duplicated(subset="Name")], "\n")
 
@@ -41,5 +43,5 @@ for i in df.columns:
 # stripped = sentences.str.strip()
 # print(stripped)
 
-df["Location"] = ["New York", "Los Angeles", "Chicago", "New York", "Los Angeles", "Chicago"]
-print(df[["Name", ]])
+# df["Location"] = ["New York", "Los Angeles", "Chicago", "New York", "Los Angeles", "Chicago"]
+# print(df[["Name", ]])
