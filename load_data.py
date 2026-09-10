@@ -121,7 +121,7 @@ def lemmatization(df, column_name):
     return df
 
 def calculate_tfidf(text_series):
-    vectorizer = TfidfVectorizer()
+    vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1, 2))
     tfidf_matrix = vectorizer.fit_transform(text_series)
     return tfidf_matrix, vectorizer.get_feature_names_out()
 
@@ -143,11 +143,6 @@ if __name__ == "__main__":
         # to get the row numbers (indices). You can't really get indices from a sparse, non in the usual way.
         # print(product, product_row_indices, end="-" * 40 + "\n")
         product_tfidf = sparse_matrix[product_row_indices] # but you can pass a Boolean mask to a sparse and that's okay.
-        # print(len(product_row_indices))
-        # print(terms[2928])
-        # print(product_tfidf[0:1, 29282:29284].toarray())
-        # print(product_tfidf[0:1])
-        
         '''
         Dividing by total docs-per-product is correct because 
         the zeros count. A term that's genuinely common across the category gets a mean 
@@ -166,26 +161,11 @@ if __name__ == "__main__":
             np.asarray(product_tfidf.mean(axis=0)).ravel(),
             decimals=3,
         )
-        print(means[1100:1110])
-
-        # for i in range(len(terms)):
-        # #     # finds every position (across all rows of product_tfidf) \ 
-        # #     # where the stored value belongs to column i, i.e. to term i.
-        #     term_indices = product_tfidf.indices == i # this produces a mask
-            
-        # #     print("Full matrix shape:", sparse_matrix.shape)
-        # #     print("Product matrix shape:", product_tfidf.shape)
-        # #     print("Same number of columns?", sparse_matrix.shape[1] == product_tfidf.shape[1])
-        # #     print("Number of terms:", len(terms))
-        #     term_data = product_tfidf.data[term_indices] # Using that mask on product_tfidf.data pulls \
-        #     # out every nonzero TF-IDF value for term i, 
-        #     # across every document belonging to that product — 
-        #     # which is exactly what you want if you're computing something like \ 
-        #     # a per-term average for that product.
-        #     term_mean_tfidf = term_data.sum() / len(product_rows[product_rows == True]) 
-        #     means_of_all_terms.append(term_mean_tfidf)
-        # top_10_terms = sorted(zip(terms, means_of_all_terms), key=lambda x: x[1], reverse=True)[:10]
-        # print(top_10_terms, end="-" * 40 + "\n")
+        
+        top_terms = sorted(zip(terms, means), key=lambda x: x[1], reverse=True)
+        CUSTOM_STOPWORDS = {'make', 'say', 'get', 'send', 'tell', 'call', 'ask', 'use', 'day'}
+        top_terms = [x for x in top_terms if x[0] not in CUSTOM_STOPWORDS][:20]
+        print(f"Top 20 terms for {product}: \n", [i[0] for i in top_terms], end="\n" * 2)
 
 
 
