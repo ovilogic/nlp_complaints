@@ -5,7 +5,7 @@ df = pd.DataFrame({
     "Age": [25, 30, 35, 25, 30, 40, 43],
 })
 
-print(df.max())
+# print(df.max())
 
 # print(df.columns.get_loc("Name"))
 # for i in df.columns:
@@ -45,3 +45,10 @@ print(df.max())
 
 # df["Location"] = ["New York", "Los Angeles", "Chicago", "New York", "Los Angeles", "Chicago"]
 # print(df[["Name", ]])
+
+df2 = df.copy()
+print(eq := df == df2)
+print(type(eq))
+print(truthies :=eq.all())
+print(type(truthies))
+print(truthies.index)

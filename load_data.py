@@ -14,43 +14,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# path = Path(__file__).parent / "data" / "complaints_processed.csv"
-# df = pd.read_csv(path, index_col=0)
-
-# parent = Path(__file__).parent        
-
-# print(df.shape)
-# print(df.columns)
-# print(df.head())
-# print(df.memory_usage(index=True, deep=True).sum() )
-# row = df.loc[0, "narrative"]
-# print(row)
-# categories = df["product"].value_counts()
-# print(categories)
-# print(df.info())
-# if df.shape[0] == len(df):
-#     print(df.shape[0], df.shape[1], len(df))
-# print(df.isnull().sum())
-# print(df.isna().sum())
-# print(df["product"].value_counts(normalize=True) * 100)
-
-# print(df.duplicated())
-
-# df_clean = df.drop_duplicates(subset="narrative")
-# # print(df_clean.shape, df_clean.info(), sep="\n")
-
-# df = df_clean
-# df_non_null = df.dropna(subset=["narrative"])
-# print(df_non_null.shape, df_non_null.info(), sep="\n")
-
-# df.dropna(inplace=True)
-# # print(df.info(), sep="\n")
-# # print(df.head())
-# print(df.columns)
-# print(df["product"].value_counts())
-# print(df["narrative"].str.len().describe())
-
-# Refactoring the code into functions
 file_name = "complaints_processed.csv"
 def load_data(file_name):
     logger.info(f"Loading data from {file_name}.")
@@ -167,7 +130,7 @@ if __name__ == "__main__":
     # data_auditing(df["narrative"])
     # # lemmatized_df = lemmatization(df, "narrative")
     load_lemmatized_df = pd.read_parquet("./lemmatized_already/df_lemmatized.parquet")
-
+    logger.info(f"The original dataframe and the lemmatized parquet one have their indexes aligned: {(df.index == load_lemmatized_df.index).all()}")
     tfidf = calculate_tfidf(load_lemmatized_df["Lemmatized"])
     terms = tfidf[1]  # Get the feature names (terms)
     sparse_matrix = tfidf[0] # Remmember, this is a sparse matrix.
@@ -180,26 +143,45 @@ if __name__ == "__main__":
         # to get the row numbers (indices). You can't really get indices from a sparse, non in the usual way.
         # print(product, product_row_indices, end="-" * 40 + "\n")
         product_tfidf = sparse_matrix[product_row_indices] # but you can pass a Boolean mask to a sparse and that's okay.
-        means_of_all_terms = []
-        # print("Max column index in product_tfidf:", product_tfidf.indices.max())
-        # print("len(terms) - 1:", len(terms) - 1)
-        for i in range(len(terms)):
-            if i == 10:
-                term_word = terms[i]
-                print(term_word)
-                mask_a = product_tfidf.indices == i
-                values_a = product_tfidf.data[mask_a]
-                print(values_a)
-        #     # finds every position (across all rows of product_tfidf) \ 
-        #     # where the stored value belongs to column i, i.e. to term i.
-        #     term_indices = np.where(product_tfidf.indices == i) # this produces a mask
-        #     print("Full matrix shape:", sparse_matrix.shape)
-        #     print("Product matrix shape:", product_tfidf.shape)
-        #     print("Same number of columns?", sparse_matrix.shape[1] == product_tfidf.shape[1])
-        #     print("Number of terms:", len(terms))
-        #     term_data = product_tfidf.data[term_indices] # Using that mask on product_tfidf.data pulls out every nonzero TF-IDF value for term i, 
-            # across every document belonging to that product — 
-            # which is exactly what you want if you're computing something like a per-term average for that product.
+        # print(len(product_row_indices))
+        # print(terms[2928])
+        # print(product_tfidf[0:1, 29282:29284].toarray())
+        # print(product_tfidf[0:1])
+        
+        '''
+        Dividing by total docs-per-product is correct because 
+        the zeros count. A term that's genuinely common across the category gets a mean 
+        that reflects thousands of small-but-nonzero contributions. 
+        A term that's a rare-but-intens)e outlier gets diluted toward
+        zero by all the documents where it doesn't appear at all. That's the right default.
+
+        Where the real problem shows up is with moderately rare words — not appearing in just 2 docs, but in, say, 50 or 100 out of 30,000, each with a high TF because that handful of people wrote long, repetitive rants. That's enough occurrences to survive averaging while still not being "representative" of the category in any real topical sense — it's a idiosyncratic writing-style artifact, not a signal.
+
+        So the underlying issue is: mean TF-IDF conflates "high average signal" with "a few documents screaming loudly." Two different phenomena produce the same top-of-list result:
+
+        A word genuinely common across many category documents (what you want — "overdraft").
+        A word rare-but-intense in a handful of documents (noise you don't want).
+        '''
+        means = np.round(
+            np.asarray(product_tfidf.mean(axis=0)).ravel(),
+            decimals=3,
+        )
+        print(means[1100:1110])
+
+        # for i in range(len(terms)):
+        # #     # finds every position (across all rows of product_tfidf) \ 
+        # #     # where the stored value belongs to column i, i.e. to term i.
+        #     term_indices = product_tfidf.indices == i # this produces a mask
+            
+        # #     print("Full matrix shape:", sparse_matrix.shape)
+        # #     print("Product matrix shape:", product_tfidf.shape)
+        # #     print("Same number of columns?", sparse_matrix.shape[1] == product_tfidf.shape[1])
+        # #     print("Number of terms:", len(terms))
+        #     term_data = product_tfidf.data[term_indices] # Using that mask on product_tfidf.data pulls \
+        #     # out every nonzero TF-IDF value for term i, 
+        #     # across every document belonging to that product — 
+        #     # which is exactly what you want if you're computing something like \ 
+        #     # a per-term average for that product.
         #     term_mean_tfidf = term_data.sum() / len(product_rows[product_rows == True]) 
         #     means_of_all_terms.append(term_mean_tfidf)
         # top_10_terms = sorted(zip(terms, means_of_all_terms), key=lambda x: x[1], reverse=True)[:10]
