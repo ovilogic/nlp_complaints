@@ -164,44 +164,19 @@ if __name__ == "__main__":
         
         top_terms = sorted(zip(terms, means), key=lambda x: x[1], reverse=True)
         CUSTOM_STOPWORDS = {'make', 'say', 'get', 'send', 'tell', 'call', 'ask', 'use', 'day'}
-        top_terms = [x for x in top_terms if x[0] not in CUSTOM_STOPWORDS][:20]
+        top_terms = [x for x in top_terms if x[0] not in CUSTOM_STOPWORDS][:15]
         # print(f"Top 20 terms for {product}: \n", [f"{i[0]} : {i[1] * 100:.2f}" for i in top_terms], end="\n" * 2)
         top_dict = {}
         for i in top_terms:
             top_dict[i[0]] = f"{i[1] * 100:.2f}"
         scores[product] = top_dict
 
-        best_term_scores = {}
+    
 
-    for product, term_scores in scores.items():
-        for term, score in term_scores.items():
-            score = float(score)
-
-            if term not in best_term_scores or score > best_term_scores[term]["score"]:
-                best_term_scores[term] = {
-                    "product": product,
-                    "score": score,
-                }
-
-
-    expunge = {}
-    for i in scores.keys():
-        expunge[i] = []
     for k in scores.keys():
         print(f"Top 20 terms and their scores for product >>>>>{k}<<<<<:\n")
         for l, w in scores[k].items():
             print(l, ": ", w)
-            if best_term_scores[l]:
-                if best_term_scores[l]["product"] != k:
-                    expunge[k].append(l)
-
         print("\n"*2)
-
-    for m, n in best_term_scores.items():
-        print(m, ": ", n)
-
-    print("Expunge\n" + "-" * 40)
-    for k, v in expunge.items():
-        print(k, v)
 
 
