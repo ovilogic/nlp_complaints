@@ -121,7 +121,7 @@ def lemmatization(df, column_name):
     return df
 
 def calculate_tfidf(text_series):
-    vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1, 2))
+    vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1, 2), min_df=0.01, max_df=0.95)
     tfidf_matrix = vectorizer.fit_transform(text_series)
     return tfidf_matrix, vectorizer.get_feature_names_out()
 
@@ -135,13 +135,13 @@ if __name__ == "__main__":
     terms = tfidf[1]  # Get the feature names (terms)
     sparse_matrix = tfidf[0] # Remmember, this is a sparse matrix.
 
+    scores = {}
     for product in df["product"].unique():
         # First, let's get a mask (single Series of boolean values). As the notes say,
         # this can be used directly as a mask for filtering.
         product_rows = df["product"].eq(product)
         product_row_indices = product_rows.to_numpy().nonzero()[0] # The whole point of going back to the original dense array \
         # to get the row numbers (indices). You can't really get indices from a sparse, non in the usual way.
-        # print(product, product_row_indices, end="-" * 40 + "\n")
         product_tfidf = sparse_matrix[product_row_indices] # but you can pass a Boolean mask to a sparse and that's okay.
         '''
         Dividing by total docs-per-product is correct because 
@@ -165,7 +165,43 @@ if __name__ == "__main__":
         top_terms = sorted(zip(terms, means), key=lambda x: x[1], reverse=True)
         CUSTOM_STOPWORDS = {'make', 'say', 'get', 'send', 'tell', 'call', 'ask', 'use', 'day'}
         top_terms = [x for x in top_terms if x[0] not in CUSTOM_STOPWORDS][:20]
-        print(f"Top 20 terms for {product}: \n", [i[0] for i in top_terms], end="\n" * 2)
+        # print(f"Top 20 terms for {product}: \n", [f"{i[0]} : {i[1] * 100:.2f}" for i in top_terms], end="\n" * 2)
+        top_dict = {}
+        for i in top_terms:
+            top_dict[i[0]] = f"{i[1] * 100:.2f}"
+        scores[product] = top_dict
 
+        best_term_scores = {}
+
+    for product, term_scores in scores.items():
+        for term, score in term_scores.items():
+            score = float(score)
+
+            if term not in best_term_scores or score > best_term_scores[term]["score"]:
+                best_term_scores[term] = {
+                    "product": product,
+                    "score": score,
+                }
+
+
+    expunge = {}
+    for i in scores.keys():
+        expunge[i] = []
+    for k in scores.keys():
+        print(f"Top 20 terms and their scores for product >>>>>{k}<<<<<:\n")
+        for l, w in scores[k].items():
+            print(l, ": ", w)
+            if best_term_scores[l]:
+                if best_term_scores[l]["product"] != k:
+                    expunge[k].append(l)
+
+        print("\n"*2)
+
+    for m, n in best_term_scores.items():
+        print(m, ": ", n)
+
+    print("Expunge\n" + "-" * 40)
+    for k, v in expunge.items():
+        print(k, v)
 
 
