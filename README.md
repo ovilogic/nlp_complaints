@@ -2,7 +2,7 @@
 
 Analyzing ~160K CFPB consumer financial complaint narratives to surface the terms, themes, and language patterns that distinguish one financial product category from another — built as an analyst-employability portfolio project, prioritizing interpretable, well-justified methodology over model complexity.
 
-**Status: work in progress.** Preprocessing and TF-IDF term extraction are done. Sentiment scoring, the classifier tab, and the dashboard frontend are not yet built. See [Roadmap](#roadmap) below.
+**Status: work in progress.** Preprocessing, TF-IDF term extraction, and sentiment scoring are done. The classifier tab and dashboard frontend are not yet built. See [Roadmap](#roadmap) below.
 
 ---
 
@@ -14,7 +14,7 @@ Given a complaint narrative and its labeled product category (`credit_card`, `re
 2. Lemmatizes narrative text with spaCy
 3. Fits TF-IDF globally across the full corpus, then computes the top distinctive terms per product category
 
-Planned next: sentiment scoring (VADER, framed as "frustration intensity"), JSON export for a static frontend dashboard, and an optional Naive Bayes classifier tab.
+Planned next: a static frontend dashboard using the sentiment JSON export and an optional Naive Bayes classifier tab.
 
 Full reasoning behind each methodological choice — why TF-IDF is fit globally rather than per-category, how the per-category mean is computed and why, the stopword and cross-category filtering applied — is documented in [`docs/methodology.md`](docs/methodology.md).
 
@@ -42,9 +42,9 @@ Lemmatize (spaCy)             ✅ done
     ↓
 TF-IDF vectorization          ✅ done
     ↓
-Sentiment scoring (VADER)     ⏳ planned
+Sentiment scoring (VADER)     ✅ done
     ↓
-JSON export                   ⏳ planned
+JSON export                   ✅ done
     ↓
 Naive Bayes (optional)        ⏳ planned
     ↓
@@ -83,8 +83,8 @@ The script prints, for each product category, the top 20 TF-IDF terms and their 
 - [x] Data loading + statistical audit (stratified sample, stopword/punctuation/token-length checks)
 - [x] spaCy lemmatization with Parquet checkpointing
 - [x] Global TF-IDF fitting + per-category mean term extraction
-- [ ] VADER sentiment ("frustration intensity") scoring on raw narrative text
-- [ ] JSON export for frontend consumption
+- [x] VADER sentiment ("frustration intensity") scoring on raw narrative text
+- [x] JSON export for frontend consumption
 - [ ] Plain JS dashboard (audit panel, complaints-by-product, sentiment distribution, top themes, insights)
 - [ ] Optional Naive Bayes classifier tab
 - [ ] Deployment (Raspberry Pi + AWS Route 53 - Cloudflare, static frontend)

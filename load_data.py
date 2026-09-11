@@ -3,9 +3,11 @@ import logging
 import spacy
 import numpy as np
 import logging
+import nltk
 from spacy.lang.en.stop_words import STOP_WORDS
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
+from nltk.sentiment import SentimentIntensityAnalyzer
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -41,7 +43,7 @@ def load_data(file_name):
     print(df.columns.tolist())
     df_clean = df.drop_duplicates(subset="narrative")
     df_clean.dropna(inplace=True)
-    logger.info("Data cleaning completed.\n" + "-" * 80)
+    logger.info("Data cleaning completed. Not lemmatised. No stopwords removed\n" + "-" * 80)
     return df_clean
 
 def data_auditing(series):
@@ -135,48 +137,47 @@ if __name__ == "__main__":
     terms = tfidf[1]  # Get the feature names (terms)
     sparse_matrix = tfidf[0] # Remmember, this is a sparse matrix.
 
-    scores = {}
-    for product in df["product"].unique():
-        # First, let's get a mask (single Series of boolean values). As the notes say,
-        # this can be used directly as a mask for filtering.
-        product_rows = df["product"].eq(product)
-        product_row_indices = product_rows.to_numpy().nonzero()[0] # The whole point of going back to the original dense array \
-        # to get the row numbers (indices). You can't really get indices from a sparse, non in the usual way.
-        product_tfidf = sparse_matrix[product_row_indices] # but you can pass a Boolean mask to a sparse and that's okay.
-        '''
-        Dividing by total docs-per-product is correct because 
-        the zeros count. A term that's genuinely common across the category gets a mean 
-        that reflects thousands of small-but-nonzero contributions. 
-        A term that's a rare-but-intens)e outlier gets diluted toward
-        zero by all the documents where it doesn't appear at all. That's the right default.
+    # scores = {}
+    # for product in df["product"].unique():
+    #     # First, let's get a mask (single Series of boolean values). As the notes say,
+    #     # this can be used directly as a mask for filtering.
+    #     product_rows = df["product"].eq(product)
+    #     product_row_indices = product_rows.to_numpy().nonzero()[0] # The whole point of going back to the original dense array \
+    #     # to get the row numbers (indices). You can't really get indices from a sparse, non in the usual way.
+    #     product_tfidf = sparse_matrix[product_row_indices] # but you can pass a Boolean mask to a sparse and that's okay.
+    #     '''
+    #     Dividing by total docs-per-product is correct because 
+    #     the zeros count. A term that's genuinely common across the category gets a mean 
+    #     that reflects thousands of small-but-nonzero contributions. 
+    #     A term that's a rare-but-intens)e outlier gets diluted toward
+    #     zero by all the documents where it doesn't appear at all. That's the right default.
 
-        Where the real problem shows up is with moderately rare words — not appearing in just 2 docs, but in, say, 50 or 100 out of 30,000, each with a high TF because that handful of people wrote long, repetitive rants. That's enough occurrences to survive averaging while still not being "representative" of the category in any real topical sense — it's a idiosyncratic writing-style artifact, not a signal.
+    #     Where the real problem shows up is with moderately rare words — not appearing in just 2 docs, but in, say, 50 or 100 out of 30,000, each with a high TF because that handful of people wrote long, repetitive rants. That's enough occurrences to survive averaging while still not being "representative" of the category in any real topical sense — it's a idiosyncratic writing-style artifact, not a signal.
 
-        So the underlying issue is: mean TF-IDF conflates "high average signal" with "a few documents screaming loudly." Two different phenomena produce the same top-of-list result:
+    #     So the underlying issue is: mean TF-IDF conflates "high average signal" with "a few documents screaming loudly." Two different phenomena produce the same top-of-list result:
 
-        A word genuinely common across many category documents (what you want — "overdraft").
-        A word rare-but-intense in a handful of documents (noise you don't want).
-        '''
-        means = np.round(
-            np.asarray(product_tfidf.mean(axis=0)).ravel(),
-            decimals=3,
-        )
+    #     A word genuinely common across many category documents (what you want — "overdraft").
+    #     A word rare-but-intense in a handful of documents (noise you don't want).
+    #     '''
+    #     means = np.round(
+    #         np.asarray(product_tfidf.mean(axis=0)).ravel(),
+    #         decimals=3,
+    #     )
         
-        top_terms = sorted(zip(terms, means), key=lambda x: x[1], reverse=True)
-        CUSTOM_STOPWORDS = {'make', 'say', 'get', 'send', 'tell', 'call', 'ask', 'use', 'day'}
-        top_terms = [x for x in top_terms if x[0] not in CUSTOM_STOPWORDS][:15]
-        # print(f"Top 20 terms for {product}: \n", [f"{i[0]} : {i[1] * 100:.2f}" for i in top_terms], end="\n" * 2)
-        top_dict = {}
-        for i in top_terms:
-            top_dict[i[0]] = f"{i[1] * 100:.2f}"
-        scores[product] = top_dict
+    #     top_terms = sorted(zip(terms, means), key=lambda x: x[1], reverse=True)
+    #     CUSTOM_STOPWORDS = {'make', 'say', 'get', 'send', 'tell', 'call', 'ask', 'use', 'day'}
+    #     top_terms = [x for x in top_terms if x[0] not in CUSTOM_STOPWORDS][:15]
+    #     # print(f"Top 20 terms for {product}: \n", [f"{i[0]} : {i[1] * 100:.2f}" for i in top_terms], end="\n" * 2)
+    #     top_dict = {}
+    #     for i in top_terms:
+    #         top_dict[i[0]] = f"{i[1] * 100:.2f}"
+    #     scores[product] = top_dict
 
     
-
-    for k in scores.keys():
-        print(f"Top 20 terms and their scores for product >>>>>{k}<<<<<:\n")
-        for l, w in scores[k].items():
-            print(l, ": ", w)
-        print("\n"*2)
+    # for k in scores.keys():
+    #     print(f"Top 20 terms and their scores for product >>>>>{k}<<<<<:\n")
+    #     for l, w in scores[k].items():
+    #         print(l, ": ", w)
+    #     print("\n"*2)
 
 
